@@ -5,6 +5,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 
@@ -24,6 +26,7 @@ public class WifiStateReceiver extends BroadcastReceiver {
             listener.onWifiStateChanged(WifiState.DISABLED, null);
             return;
         }
+
         final WifiInfo wifiInfo = wifiMan.getConnectionInfo();
         if (wifiInfo.getNetworkId() != -1) {
             String ssid = wifiInfo.getSSID();
@@ -31,9 +34,17 @@ public class WifiStateReceiver extends BroadcastReceiver {
                 ssid = null;
             } else {
                 // Remove quotes
-                ssid = ssid.substring(1, ssid.length()-1);
+                ssid = ssid.substring(1, ssid.length() - 1);
             }
             listener.onWifiStateChanged(WifiState.CONNECTED, ssid);
+            return;
+        }
+        // Fallback if we don't wanna use the location permission.
+        ConnectivityManager connectivityManager = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        Network activeNetwork = connectivityManager.getActiveNetwork();
+        NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
+        if (networkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+            listener.onWifiStateChanged(WifiState.CONNECTED, null);
         } else {
             listener.onWifiStateChanged(WifiState.ENABLED, null);
         }
